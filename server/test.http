@@ -1,0 +1,54 @@
+GET http://localhost:3001/api/cards/2
+
+###
+
+GET http://localhost:3001/api/cards/9
+
+###
+
+GET http://localhost:3001/api/cards/starting
+
+###
+
+POST http://localhost:3001/api/users/1/matches
+
+###
+
+POST http://localhost:3001/api/users/3/matches
+
+###
+
+GET http://localhost:3001/api/users/1/matches
+
+###
+
+GET http://localhost:3001/api/users/2/matches
+
+###
+
+PUT http://localhost:3001/api/users/1/matches/1
+Content-Type: application/json
+
+{
+  "matchResult": 0,
+  "cardsObtained": 6
+}
+
+###
+
+POST http://localhost:3001/api/matches/1/rounds
+Content-Type: application/json
+
+{
+  "cards": [
+    {
+      "CardId": 1,
+      "RoundResult": 1,
+      "roundNumber": 1
+    }
+  ]
+}
+
+###
+
+GET http://localhost:3001/api/matches/2/rounds

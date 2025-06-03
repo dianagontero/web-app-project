@@ -1,0 +1,145 @@
+import sqlite from 'sqlite3';
+import { User, Card, Match, RoundCard } from './Models.mjs';
+import e from 'express';
+
+const db = new sqlite.Database('db.sqlite', (err) => {
+    if (err) {
+        throw new Error(`Error opening database: ${err.message}`);
+    }
+    else {
+        console.log('Database opened successfully');
+    };
+});
+
+export const getUSer = (UserId) => {
+    return new Promise((resolve, reject) => {
+        db.get('SELECT * FROM User WHERE UserId = ?', [UserId], (err, row) => {
+            if (err) {
+                reject(err);
+            } else if (row) {
+                resolve(new User(row.UserId, row.email, row.psw, row.salt, row.name, row.surname));
+            } else {
+                resolve(new Error('User not found'));
+            }
+        });
+    });
+}
+
+export const getCard = (CardId) => {
+    return new Promise((resolve, reject) => {
+        db.get('SELECT * FROM Card WHERE CardId = ?', [CardId], (err, row) => {
+            if (err) {
+                reject(err);
+            } else if (row) {
+                resolve(new Card(row.CardId, row.title, row.level, row.url));
+            } else {
+                resolve(new Error('Card not found'));
+            }
+        });
+    });
+}
+
+export const getThreeCards = () => {
+    return new Promise((resolve, reject) => {
+        db.all('SELECT * FROM Card ORDER BY RANDOM() LIMIT 3', [], (err, rows) => {
+            if (err) {
+                reject(err);
+            } else if (rows.length === 3) {
+                const cards = rows.map(row => new Card(row.CardId, row.title, row.level, row.url));
+                resolve(cards);
+            } else {
+                resolve(new Error("Found less than 3 cards: " + rows.length));
+            }
+        });
+    });
+}
+
+export const getMatch = (MatchId) => {
+    return new Promise((resolve, reject) => {
+        db.get('SELECT * FROM Match WHERE MatchId = ?', [MatchId], (err, row) => {
+            if (err) {
+                reject(err);
+            } else if (row) {
+                resolve(new Match(row.MatchId, row.UserId, row.matchResult, row.cardsObtained, row.date));
+            } else {
+                resolve(new Error('Match not found'));
+            }
+        });
+    });
+}
+
+export const getMatches = (UserId) => {
+    return new Promise((resolve, reject) => {
+        db.all('SELECT * FROM Match WHERE UserId = ?', [UserId], (err, rows) => {
+            if (err) {
+                reject(err);
+            } else if (rows.length > 0) {
+                const matches = rows.map(row => new Match(row.MatchId, row.UserId, row.matchResult, row.cardsObtained, row.date));
+                resolve(matches);
+            } else {
+                resolve(new Error('No matches found for this user'));
+            }
+        });
+    });
+}
+
+export const PostMatch = (UserId, matchResult, cardsObtained) => {
+    return new Promise((resolve, reject) => {
+        const date = new Date().toISOString();
+        db.run('INSERT INTO Match (UserId, matchResult, cardsObtained, date) VALUES (?, ?, ?, ?)', 
+            [UserId, matchResult, cardsObtained, date], 
+            function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(this.lastID);
+                }
+            });
+    });
+}
+
+export const PutMatch = (MatchId, matchResult, cardsObtained) => {
+    return new Promise((resolve, reject) => {
+        db.run('UPDATE Match SET matchResult = ?, cardsObtained = ? WHERE MatchId = ?', 
+            [matchResult, cardsObtained, MatchId], 
+            function(err) {
+                if (err) {
+                    reject(err);
+                } else if (this.changes !== 0) {
+                    resolve(this.changes);
+                }
+                else {
+                    resolve(new Error('Match not found'));
+                }
+            });
+    });
+}
+
+export const PostRoundCard = (CardId, MatchId, RoundResult, roundNumber) => {
+    return new Promise((resolve, reject) => {
+        db.run('INSERT INTO RoundCard (CardId, MatchId, RoundResult, roundNumber) VALUES (?, ?, ?, ?)', 
+            [CardId, MatchId, RoundResult, roundNumber], 
+            function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(this.lastID);
+                }
+            });
+    });
+}
+
+export const getRoundCards = (MatchId) => {
+    return new Promise((resolve, reject) => {
+        db.all('SELECT * FROM RoundCard WHERE MatchId = ?', [MatchId], (err, rows) => {
+            if (err) {
+                reject(err);
+            } else if (rows.length >= 3 && rows.length <= 8) {
+                const roundCards = rows.map(row => new RoundCard(row.RoundCardId, row.CardId, row.MatchId, row.RoundResult, row.roundNumber));
+                resolve(roundCards);
+            } else {
+                resolve(new Error("Found invalid number of cards for this Match, length:" + rows.length));
+            }
+        });
+    });
+}
