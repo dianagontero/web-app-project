@@ -1,7 +1,7 @@
 // imports
 import express from 'express';
 import {param, check, validationResult} from 'express-validator';
-import { getUSer, getCard, getMatch, getThreeCards, getRoundCards, getMatches, PostMatch, PostRoundCard, PutMatch} from './DAO.mjs';
+import { getUSer, getCard, getMatch, getThreeCards, getRoundCards, getMatches, PostMatch, PostRoundCard, PutMatch, getCardbyID} from './DAO.mjs';
 import cors from 'cors';
 
 // init express
@@ -35,26 +35,6 @@ app.get('/api/cards/starting', async (req, res) => {
   }
 });
 
-//get card by id
-app.get('/api/cards/:CardId', 
-  [param('CardId').isInt({min: 1}).withMessage('CardId must be a positive integer')],
-  async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-    try {
-      const card = await getCard(req.params.CardId);
-      if (card instanceof Error) {
-        return res.status(404).json({ error: card.message });
-      } else {
-        res.status(200).json(card);
-      }
-    } catch (err) {
-      res.status(500).json({ error: `Internal server error: ${err.message}` });
-    }
-  }
-);
 
 //get all matches for a user
 app.get('/api/users/:UserId/matches', 
@@ -103,7 +83,7 @@ app.post('/api/users/:UserId/matches',
 
     try {
       const matchId = await PostMatch(userId, -1, 0); //default values: matchResult = -1, cardsObtained = 0
-      res.status(201).json(`Match created with ID: ${matchId}`);
+      res.status(201).json(matchId);
     } catch (err) {
       res.status(500).json({ error: `Internal server error: ${err.message}` });
     }
@@ -183,7 +163,7 @@ app.post('/api/matches/:MatchId/rounds',
       for (const card of cards) {
         const {CardId, RoundResult, roundNumber} = card;
 
-        const cardData = await getCard(CardId);
+        const cardData = await getCardbyID(CardId);
         if (cardData instanceof Error) {
           return res.status(404).json({ error: cardData.message });
         }
@@ -209,6 +189,7 @@ app.post('/api/matches/:MatchId/rounds',
   }
 );
 
+
 //get round cards for a match
 app.get('/api/matches/:MatchId/rounds', 
   [param('MatchId').isInt({min: 1}).withMessage('MatchId must be a positive integer')],
@@ -230,6 +211,64 @@ app.get('/api/matches/:MatchId/rounds',
         return res.status(400).json({ error: roundCards.message });
       } else {
         res.status(200).json(roundCards);
+      }
+    } catch (err) {
+      res.status(500).json({ error: `Internal server error: ${err.message}` });
+    }
+  }
+);
+
+app.post('/api/cards/:CardId', 
+  [param('CardId').isInt({min: 1}).withMessage('CardId must be a positive integer'), 
+  check('levelsx').isInt({min: 0, max: 100}).withMessage('levelsx must be between 0 and 100'),
+  check('leveldx').isInt({min: 0, max: 100}).withMessage('leveldx must be between 0 and 100')
+  ],
+  async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const cardId = req.params.CardId;
+  const card = await getCardbyID(cardId);
+  if (card instanceof Error) {
+    return res.status(404).json({ error: card.message });
+  }
+
+  const { levelsx, leveldx } = req.body;
+
+  try {
+    const result = await CheckAnswer(cardId, levelsx, leveldx);
+    res.json({ result });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+//get card
+app.get('/api/matches/:MatchId/cards', 
+  [ 
+    param('MatchId').isInt({min: 1}).withMessage('MatchId must be a positive integer')
+  ],
+  
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const matchId = req.params.MatchId;
+    const match = await getMatch(matchId);
+    if (match instanceof Error) {
+      return res.status(404).json({ error: match.message });
+    }
+    try {
+      const card = await getCard(matchId);
+      if (card instanceof Error) {
+        return res.status(404).json({ error: card.message });
+      } else {
+        res.status(200).json(card);
       }
     } catch (err) {
       res.status(500).json({ error: `Internal server error: ${err.message}` });

@@ -25,7 +25,45 @@ export const getUSer = (UserId) => {
     });
 }
 
-export const getCard = (CardId) => {
+export const getCard = (MatchId) => {
+     return new Promise((resolve, reject) => {
+        db.all('SELECT CardId FROM RoundCard WHERE MatchId = ?', [MatchId], (err, rows) => {
+            if (err) {
+                reject(err);
+            }
+            else if (!rows) {
+                reject(new Error('No cards found for this match'));
+            }
+            else if (rows.length < 3) {
+                reject(new Error('No enough cards found for this match'));
+            }
+            const usedIds = rows.map(row => row.CardId);
+
+            let query = 'SELECT * FROM Card';
+            let params = [];
+
+   
+            const placeholders = usedIds.map((id) => '?').join(', ');
+            query += ` WHERE CardId NOT IN (${placeholders})`;
+            params = usedIds;
+
+            query += ' ORDER BY RANDOM() LIMIT 1';
+
+            db.get(query, params, (err, row) => {
+                if (err) {
+                    reject(err);
+                }
+                if (row) {
+                    resolve(new Card(row.CardId, row.title, null, row.url)); //DA PROVARE NEL HTTP
+                } else {
+                    reject(new Error('No card found'));
+                }
+            });
+        });
+    });
+}
+
+export const getCardbyID = (CardId) => {
     return new Promise((resolve, reject) => {
         db.get('SELECT * FROM Card WHERE CardId = ?', [CardId], (err, row) => {
             if (err) {
@@ -143,3 +181,25 @@ export const getRoundCards = (MatchId) => {
         });
     });
 }
+
+export const CheckAnswer = (cardId, levelLeft, levelRight) => {
+  return new Promise((resolve, reject) => {
+    db.get('SELECT * FROM Card WHERE CardID = ?', [cardId], (err, row) => {
+      if (err) {
+        return reject(err);
+      }
+
+      if (!row) {
+        return reject(new Error('Card not found'));
+      }
+
+      const isCorrect = row.level >= levelLeft && row.level <= levelRight;
+
+      if (isCorrect) {
+        resolve({ success: true, card: new Card(row.CardId, row.title, row.level, row.url) });
+      } else {
+        resolve({ success: false, message: "Wrong answer" });
+      }
+    });
+  });
+};
