@@ -1,30 +1,54 @@
-import { useEffect, useState } from 'react'
-import { Container, Form, Button, Card } from 'react-bootstrap';
-import { Link, Outlet, useLocation } from "react-router"
-import { User } from 'lucide-react'
+import { useState, useContext } from 'react'
+import { Container, Form, Button, Card, Alert } from 'react-bootstrap';
+import { UserContext } from './UserContext.jsx';
 
-function Login(){
-    return (
-    <Container 
-      className="d-flex justify-content-center align-items-center" 
-      style={{ height: '90vh' }}>
+function Login() {
+  const { login } = useContext(UserContext); // Access the login function from UserContext
+  
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSuccessMsg('');
+    setErrorMsg('');
+    setLoading(true);
+    try {
+      const user = await login(email, password );
+      if (user.success === true) {
+        setSuccessMsg('Login successful!');
+      } else {
+        setErrorMsg('Login failed. Please try again.');
+      }
+    } catch (err) {
+      setErrorMsg('Error during login: ' + (err.message || ''));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Container className="d-flex justify-content-center align-items-center" style={{ height: '90vh' }}>
       <Card style={{ width: '600px', padding: '2rem', borderRadius: '15px', boxShadow: '0 8px 16px rgba(223, 203, 18, 0.59)' }}>
         <h2 className="mb-4 text-center" style={{ color: '#0d6efd' }}>Login</h2>
         
-        { (
-          <div className="alert alert-success" role="alert">
-            Form submitted successfully!
-          </div>
-        )}
+        {successMsg && <Alert variant="success">{successMsg}</Alert>}
+        {errorMsg && <Alert variant="danger">{errorMsg}</Alert>}
         
-        <Form>
+        <Form onSubmit={handleSubmit}>
           <Form.Group className="mb-3" controlId="formEmail">
             <Form.Label>Email address</Form.Label>
             <Form.Control 
               type="email" 
               placeholder="Enter email" 
               name="email" 
+              value={email}
+              onChange={e => setEmail(e.target.value)}
               required
+              disabled={loading}
             />
           </Form.Group>
 
@@ -34,17 +58,20 @@ function Login(){
               type="password" 
               placeholder="Password" 
               name="password" 
+              value={password}
+              onChange={e => setPassword(e.target.value)}
               required
+              disabled={loading}
             />
           </Form.Group>
 
-          <Button variant="primary" type="submit" className="w-100" size="lg">
-            Submit
+          <Button variant="primary" type="submit" className="w-100" size="lg" disabled={loading}>
+            {loading ? 'Loading...' : 'Submit'}
           </Button>
         </Form>
       </Card>
     </Container>
-    )
+  )
 }
 
 export default Login

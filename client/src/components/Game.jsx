@@ -1,25 +1,78 @@
 import API from "../API.mjs";
-import React, { useState } from "react";
-
+import React, { useState, useContext } from "react";
+import { useNavigate } from "react-router";
+import { Alert } from "react-bootstrap";
+import { UserContext } from './UserContext.jsx';
+import GameIntro from "./GameIntro.jsx";
+import CardsRow from "./CardsRow.jsx";
+import NewCard from "./NewCard.jsx";
 
 function Game(){
-    const [cards, setCards] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [errorMsg, setErrorMsg] = useState(null);
-    const [gameID, setGameID] = useState(null);
-    const [newCard, setNewCard] = useState(null);
 
+    const { user } = useContext(UserContext); // Access the user context to check if the user is logged in
+
+    const [cards, setCards] = useState([]); // Array to hold the drawn cards
+    const [loading, setLoading] = useState(false); 
+    const [errorMsg, setErrorMsg] = useState(null);
+    const [successMsg, setSuccessMsg] = useState(null);
+    const [gameID, setGameID] = useState(null); // Store the game ID after starting a new game
+    const [newCard, setNewCard] = useState(null); // Store the new card taken from the server
+    const [wrongGuesses, setWrongGuesses] = useState(0); // Counter for wrong guesses
+    const [timer, setTimer] = useState(30); // Timer for the game, starting at 30 seconds
+    const [activeTimer, setActiveTimer] = useState(false); // Flag to indicate if the timer is active
+
+    const navigate = useNavigate();
+
+    // victory case
+    React.useEffect(() => { 
+        if (cards.length >= 6 && user) { // logged in user
+            API.UpdateGame(1, gameID, 1, 6);
+            navigate('/Result', { state: { cards } });
+        }
+        else if (cards.length >= 4 && !user) {
+            API.UpdateGame(0, gameID, 1, 4); // demo user
+            navigate('/Result', { state: { cards } });   
+        }
+    }, [cards.length]);
+
+    // lose case
+    React.useEffect(() => {
+        if (wrongGuesses >= 3 && user) { // logged in user
+            API.UpdateGame(user.UserId, gameID, 0, cards.length); 
+            navigate('/Result', { state: { cards } });
+        }
+        else if (wrongGuesses >= 1 && !user) { // demo user
+            API.UpdateGame(0, gameID, 0, 3); 
+            navigate('/Result', { state: { cards } });
+        }
+    }, [wrongGuesses]);
+
+    // handle timer 
+    React.useEffect(() => {
+        let timerInterval;
+        if (activeTimer && timer > 0) {
+            timerInterval = setInterval(() => {
+                setTimer(prevTimer => prevTimer - 1);
+            }, 1000);
+        }
+        else if (activeTimer && timer === 0) { // Timer reached zero
+           handleTimeOut();
+        }
+        return () => clearInterval(timerInterval); 
+    }, [activeTimer, timer]);
+
+    // start a new game 
     const handleStartGame = async () => {
         setLoading(true);
         setErrorMsg(null);
         try {
-            const gameobject = await API.startNewGame(1); // TO DO gestisci VERO UTENTE
-
-            setGameID(gameobject); //taking the id from the object
-            // Fetch initial cards for the game
-            const data = await API.getInitialCards(gameobject);
+            const game = await API.startNewGame(user?user.id:0); //post a game in db
+            setGameID(game); 
+            const data = await API.getInitialCards(game, user?user.id:0); // get 3 cards from db + post them in RoundCard table if logged in user
             const sortedCards = data.sort((a, b) => a.level - b.level);
             setCards(sortedCards); 
+            setWrongGuesses(0); 
+            setNewCard(null); 
         } catch (error) {
             setErrorMsg(error.message);
         } finally {
@@ -27,12 +80,22 @@ function Game(){
         }
     };
 
+    // get a new card from the server
     const getNewCard = async () => {
         setLoading(true);
         setErrorMsg(null);
         try {
-            const newCard = await API.getCard(gameID);
-            setNewCard(newCard);
+            let newc;
+            if (!user) {
+                newc = await API.getCardDemo(gameID, cards, Date.now()); //get a card from db + post it in TIMER_CARD table
+                //cards used to take a new different card
+            }
+            else {
+                newc = await API.getCard(gameID, Date.now()); //get a card from db + post it in TIMER_CARD table
+            }
+            setNewCard(newc);
+            setTimer(30); // Reset timer to 30 seconds
+            setActiveTimer(true);
         } catch (error) {
             setErrorMsg(error.message);
         } finally {
@@ -40,97 +103,73 @@ function Game(){
         }
     }
 
-    const handleDrop = async (e, insertIndex = null, levelsx, leveldx) => {
-        e.preventDefault();
-        const droppedCard = JSON.parse(e.dataTransfer.getData('text/plain'));
+    // player placing a card
+    const handleDrop = async (e, insertIndex, levelsx, leveldx) => {
+        e.preventDefault(); 
+        setActiveTimer(false); // Stop the timer when a card is dropped
+        const droppedCard = JSON.parse(e.dataTransfer.getData('text/plain')); 
         try {
-            const isWon = await API.checkCard(droppedCard.CardId, levelsx, leveldx);
-            if (isWon) {
+            const round = wrongGuesses + cards.length - 2; // Calculating the current round based on wrong guesses and cards drawn
+            const check = await API.CheckAnswer(newCard.CardId, levelsx, leveldx, user?user.id:0, round, gameID, Date.now());
+            //check if card is placed in right position and time < 30 seconds + post it in RoundCard table if logged in user
+            if (check.success) {
+                setSuccessMsg("Congratulations! You guessed right!");
+                setErrorMsg(null);
                 setCards((prevCards) => {
-                    if (insertIndex === null) {
-                        return [...prevCards, droppedCard];
-                    } else {
-                        const newCards = [...prevCards];
-                        newCards.splice(insertIndex, 0, droppedCard);
-                        return newCards;
-                    }
+                    let newCards = [...prevCards];
+                    newCards.splice(insertIndex, 0, check.card);
+                    return newCards;
                 });
-                setNewCard(null);
             } else {
-                alert("You guessed wrong! This card is not in the right position.");
+                setWrongGuesses((prev) => {
+                    let newWrongGuesses = prev + 1;
+                    if (check.timeout) { // If the user is trying to cheat by placing a card after the timer has expired
+                        setErrorMsg("You are cheating! You have " + (3 - newWrongGuesses) + " guesses left.");
+                    }
+                    else { // If the user placed the card in the wrong position
+                        setErrorMsg("Wrong guess! You have " + (3 - newWrongGuesses) + " guesses left.");
+                    }
+                    setSuccessMsg(null);
+                    return newWrongGuesses;
+                });
             }
+            setNewCard(null);
         } catch (error) {
             alert("Error in checking card: " + error.message);
+            setNewCard(null);
         }
     }
-    return (
-        <div className="d-flex flex-column align-items-center justify-content-center text-center p-4">
+
+    // handle timeout when the timer reaches zero
+    const handleTimeOut = () => {
+        if (user) {
+            const round = wrongGuesses + cards.length - 2; // Calculate the current round based on wrong guesses and cards drawn
+            API.UpdateRound(newCard.CardId, gameID, round); // Update round card with lose
+        }
+        setActiveTimer(false); // Stop the timer
+        setNewCard(null); // Reset the new card
+        setWrongGuesses((prev) => {
+            let newWrongGuesses = prev + 1;
+            setErrorMsg("Time's up! You have " + (3 - newWrongGuesses) + " guesses left.");
+            setSuccessMsg(null);
+            return newWrongGuesses;
+        });
         
-        {!gameID ? ( 
-        <>
-            <h1 className="mb-4 text-primary">Let the misfortune begin!</h1>
-            <button className="btn btn-danger mb-4"onClick={handleStartGame} disabled={loading}> 
-                {loading ? 'Loading cards...' : 'Click to draw your starting cards'}
-            </button>
-        </>
-        ) : (
-            <div className="d-flex flex-wrap justify-content-center gap-3">
+    }
 
-                {/* Drop zone to insert at the beginning */}
-                <div
-                style={{ width: '18rem', height: '100px', border: '2px dashed gray', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => handleDrop(e, 0, -1, cards[1].level)}> 
-                    <p className="text-muted">Drop here to add at the beginning</p>
-                </div>
-
-
-                {/* Cards already drawn */}
-                {cards.map((card, index) => (
-                <div key={card.CardId} className="card" style={{ width: '18rem' }}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => handleDrop(e, index, cards[index - 1].level, cards[index + 1].level)}>
-                    <div className="card-body">
-                        <h5 className="card-title">{card.title}</h5>
-                        <p className="card-text"><strong>Level:</strong> {card.level}</p>
-                    </div>
-                </div>
-                ))}
-
-                {/* Drop zone to insert at the end */}
-                <div style={{ width: '18rem', height: '100px', border: '2px dashed gray', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => handleDrop(e, null, cards[cards.length - 1].level, 101)}>
-                    <p className="text-muted">Drop here to add at the end</p>
-                </div>
-            </div>
+    return (
+        <div className="container py-4">
+            {!gameID ? (
+                GameIntro({ loading: loading, handleStartGame: handleStartGame }) // Render GameIntro component if gameID is not set
+                ) : (
+                CardsRow({cards: cards, handleDrop: handleDrop }) // Render CardsRow component if gameID is set
             )}
 
-            {errorMsg && <div className="alert alert-danger">{errorMsg}</div>}
+        {successMsg && <Alert variant="success" onClose={() => setSuccessMsg(null)} dismissible>{successMsg}</Alert>}
+        {errorMsg && <div className="alert alert-danger">{errorMsg}</div>}
 
-            {gameID && (
-                <>
-                <button
-                    className="btn btn-outline-danger mt-5"
-                    onClick={getNewCard}
-                    disabled={loading}>
-                    {loading ? 'Loading...' : 'Draw new situation'}
-                </button>
-                    {newCard && (
-                    <div className="mt-4">
-                        <h5 className="mb-3 text-info">New situation:</h5>
-                            <div className="card mx-auto" style={{ width: '18rem' }}
-                                draggable
-                                onDragStart={(e) => {
-                                e.dataTransfer.setData('text/plain', JSON.stringify(newCard));
-                            }}>
-                                <div className="card-body">
-                                    <h5 className="card-title">{newCard.title}</h5>
-                                </div>
-                            </div>
-                    </div>
-            )}
-            </>
+        {gameID && (
+           NewCard({ getNewCard: getNewCard, loading: loading, newCard: newCard, activeTimer: activeTimer, timer: timer}) // Render NewCard component if gameID is set
         )}
         </div>
     );
