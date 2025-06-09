@@ -157,7 +157,7 @@ export const getMatches = (UserId) => {
                 const matches = rows.map(row => new Match(row.MatchId, row.UserId, row.matchResult, row.cardsObtained, row.date));
                 resolve(matches);
             } else {
-                resolve(new Error('No matches found for this user'));
+                resolve({ message: 'No matches found for this user' });
             }
         });
     });

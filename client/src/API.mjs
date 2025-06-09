@@ -51,7 +51,7 @@ const getInitialCards = async (MatchId, UserId) => {
             {CardId: cardsInitial[2].CardId, RoundResult: -1, roundNumber: 0},
         ]
 
-        // If UserId is not 0 (i.e., a loggedin user), post the initial cards to the round card table
+        // If UserId is not 0 (i.e., a loggedin user), post the initial cards to the round card table (matches/:matchId/rounds)
         if (UserId != 0) {
             const response2 = await fetch(`${SERVER_URL}/api/matches/${MatchId}/rounds`, {
                 method: 'POST',
@@ -119,15 +119,15 @@ const getCard = async (MatchId, startTime) => {
     }
 }
 
-// Get a new card for the demo ( POST /api/demo/cards )
+// Get a new card for the demo ( POST /api/mathes/:MatchesId/demo )
 const getCardDemo = async (matchId, cards, startTime) => {
     try {
-        const response = await fetch(`${SERVER_URL}/api/demo/cards`, {
+        const response = await fetch(`${SERVER_URL}/api/matches/${matchId}/demo`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ matchId, cards, startTime }), // cards used to take a new different card, and start time to post the card in TIMER_CARD table
+            body: JSON.stringify({ cards, startTime }), // cards used to take a new different card, and start time to post the card in TIMER_CARD table
         } );
         const data = await response.json();
 
@@ -152,15 +152,15 @@ const getCardDemo = async (matchId, cards, startTime) => {
     }   
 }
 
-// Check if card is right ( POST /api/cards/:cardId )
+// Check if card is right ( POST /api/matches/:matchId/cards/:cardId )
 const CheckAnswer = async (CardId, levelsx, leveldx, UserId, round, MatchId, endTime) =>{
     try {
-    const response = await fetch(`${SERVER_URL}/api/cards/${CardId}`, {
+    const response = await fetch(`${SERVER_URL}/api/matches/${MatchId}/cards/${CardId}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ levelsx, leveldx, endTime, MatchId }),
+      body: JSON.stringify({ levelsx, leveldx, endTime }),
     });
 
     const data = await response.json();
@@ -175,6 +175,7 @@ const CheckAnswer = async (CardId, levelsx, leveldx, UserId, round, MatchId, end
       throw new Error(`Generic Error: ${data.error}`);
     }
 
+    // If UserId is not 0 (i.e., a loggedin user), post the card result to the round card table (matches/:matchId/rounds)
     if (UserId != 0) {
         const cards = [
             {CardId: CardId, RoundResult: data.success?1:0, roundNumber:round}
@@ -241,6 +242,96 @@ const UpdateGame = async (UserId, MatchId, matchResult, cardsObtained) => {
         throw error;
     }
 } 
+
+// get all matches of a user ( GET /api/users/:userId/matches )
+const getMatches = async (UserId) => {
+    try {
+        const response = await fetch(`${SERVER_URL}/api/users/${UserId}/matches`, {
+            credentials: 'include',
+        });
+        const matches = await response.json();
+
+        if (response.status === 400) {
+            throw new Error(`Matches not valid: ${matches.error}`);
+        }
+        else if (response.status === 404) {
+            throw new Error(`Matches not found: ${matches.error}`);
+        }
+        else if (response.status === 500) {
+            throw new Error(`Server error: ${matches.error}`);
+        }
+        else if (!response.ok) {
+            throw new Error(`Generic Error: ${matches.error}`);
+        }
+        if (!Array.isArray(matches) ) {
+            return []; // Return an empty array if no matches found
+        }
+
+        // get all cards for each match ( GET /api/matches/:MatchId/rounds )
+        const array_matches_with_cards = matches.map(async (match) => {
+            const matchId = match.MatchId;
+            const response2 = await fetch(`${SERVER_URL}/api/matches/${matchId}/rounds`, {
+                credentials: 'include',
+            });
+            const match_cards = await response2.json();
+
+            if (response2.status === 400) {
+                throw new Error(`Round cards not valid: ${match_cards.error}`);
+            }
+            else if (response2.status === 404) {
+                throw new Error(`Round not found: ${match_cards.error}`);
+            }
+            else if (response2.status === 500) {
+                throw new Error(`Server error: ${match_cards.error}`);
+            }
+            else if (!response2.ok) {
+                throw new Error(`Generic Error: ${match_cards.error}`);
+            }
+
+            const array_cards = match_cards.map(async (match_card) => {
+                const CardId = match_card.CardId;
+                const response3 = await fetch(`${SERVER_URL}/api/cards/${CardId}`, {
+                    credentials: 'include',
+                });
+                const card = await response3.json();
+                if (response3.status === 400) {
+                    throw new Error(`Card not valid: ${card.error}`);
+                }
+                else if (response3.status === 404) {
+                    throw new Error(`Card not found: ${card.error}`);
+                }
+                else if (response3.status === 500) {
+                    throw new Error(`Server error: ${card.error}`);
+                }
+                else if (!response3.ok) {
+                    throw new Error(`Generic Error: ${card.error}`);
+                }
+
+                return {
+                    result: match_card.RoundResult,
+                    roundNumber: match_card.roundNumber,
+                    title: card.title,
+                };
+            });
+
+            return {
+                Date: match.date,
+                MatchResult: match.matchResult,
+                cardsObtained: match.cardsObtained,
+                MatchCards: await Promise.all(array_cards), // Wait for all card promises to resolve
+            }
+        });
+
+        const matchesWithCards = await Promise.all(array_matches_with_cards); // Wait for all match promises to resolve
+        const sortedMatches = matchesWithCards.sort((a, b) => new Date(a.Date) - new Date(b.Date)); // Sort matches by date 
+
+        return sortedMatches;
+    } 
+    catch (error) {
+        console.error('Error getting matches:', error);
+        throw error;
+    }
+}
 
 // Update the round with card resul in case of timeout ( POST /api/matches/:matchId/rounds )
 const UpdateRound = async (CardId, MatchId, roundNumber) => {
@@ -309,7 +400,7 @@ const getCurrentUser = async () => {
         credentials: 'include',
     });
     if (!response.ok) throw new Error("Not authenticated");
-    return res.json();
+    return response.json();
 
         
 }
@@ -349,5 +440,5 @@ const Logout = async () => {
     
 }
 
-const API = {startNewGame, getInitialCards, getCard, getCardDemo, CheckAnswer, UpdateGame, UpdateRound, getRoundCards, getCurrentUser, Login, Logout};
+const API = {startNewGame, getInitialCards, getCard, getCardDemo, CheckAnswer, UpdateGame, UpdateRound, getRoundCards, getCurrentUser, getMatches, Login, Logout};
 export default API;

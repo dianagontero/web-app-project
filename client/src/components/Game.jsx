@@ -7,15 +7,15 @@ import GameIntro from "./GameIntro.jsx";
 import CardsRow from "./CardsRow.jsx";
 import NewCard from "./NewCard.jsx";
 
-function Game(){
-
+function Game(props){
     const { user } = useContext(UserContext); // Access the user context to check if the user is logged in
+
+    const {gameID, setGameID} = props; 
 
     const [cards, setCards] = useState([]); // Array to hold the drawn cards
     const [loading, setLoading] = useState(false); 
     const [errorMsg, setErrorMsg] = useState(null);
     const [successMsg, setSuccessMsg] = useState(null);
-    const [gameID, setGameID] = useState(null); // Store the game ID after starting a new game
     const [newCard, setNewCard] = useState(null); // Store the new card taken from the server
     const [wrongGuesses, setWrongGuesses] = useState(0); // Counter for wrong guesses
     const [timer, setTimer] = useState(30); // Timer for the game, starting at 30 seconds
@@ -26,24 +26,28 @@ function Game(){
     // victory case
     React.useEffect(() => { 
         if (cards.length >= 6 && user) { // logged in user
-            API.UpdateGame(1, gameID, 1, 6);
-            navigate('/Result', { state: { cards } });
+            API.UpdateGame(user.id, gameID, 1, 6);
+            setGameID(null); // Reset gameID after victory
+            navigate(`/${gameID}/Result`, { state: { cards } });
         }
         else if (cards.length >= 4 && !user) {
             API.UpdateGame(0, gameID, 1, 4); // demo user
-            navigate('/Result', { state: { cards } });   
+            setGameID(null); // Reset gameID after victory
+            navigate(`/${gameID}/Result`, { state: { cards } });   
         }
     }, [cards.length]);
 
     // lose case
     React.useEffect(() => {
         if (wrongGuesses >= 3 && user) { // logged in user
-            API.UpdateGame(user.UserId, gameID, 0, cards.length); 
-            navigate('/Result', { state: { cards } });
+            API.UpdateGame(user.id, gameID, 0, cards.length); 
+            setGameID(null); // Reset gameID after victory
+            navigate(`/${gameID}/Result`, { state: { cards } });
         }
         else if (wrongGuesses >= 1 && !user) { // demo user
             API.UpdateGame(0, gameID, 0, 3); 
-            navigate('/Result', { state: { cards } });
+            setGameID(null); // Reset gameID after victory
+            navigate(`/${gameID}/Result`, { state: { cards } });
         }
     }, [wrongGuesses]);
 

@@ -8,22 +8,31 @@ export function UserProvider({ children }) {
     const [user, setUser] = useState(null);
 
 
-   /* useEffect(() => {
+    useEffect(() => {
         const fetchUser = async () => {
             try {
                 const userData = await API.getCurrentUser();
-                setUser(userData);
+                if (userData.success === false) {
+                    setUser(null);
+                } else {
+                setUser(userData.user);
+                }
             } catch (error) {
                 setUser(null);
             }
         }
         fetchUser();
-    }, []);*/
+    }, []);
 
     const login = async (email, password) => {
         try {
             const userData = await API.Login(email, password);
-            setUser(userData);
+            if (userData.success === false) {
+                return {
+                    message: userData.message 
+                }
+            }
+            setUser(userData.user);
             return ({
                 success: true,
                 message: "welcome " + userData.name + " " + userData.surname,

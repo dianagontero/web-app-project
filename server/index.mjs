@@ -230,6 +230,24 @@ app.post('/api/matches/:MatchId/rounds', isLoggedIn,
   }
 );
 
+// get card by id
+app.get('/api/cards/:CardId', isLoggedIn,
+  [param('CardId').isInt({min: 1}).withMessage('CardId must be a positive integer')],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const cardId = req.params.CardId;
+    const card = await getCardbyID(cardId);
+    if (card instanceof Error) {
+      return res.status(404).json({ error: card.message });
+    } else {
+      res.status(200).json(card);
+    }
+  }
+);
 
 //get round cards for a match
 app.get('/api/matches/:MatchId/rounds', isLoggedIn, 
@@ -260,12 +278,13 @@ app.get('/api/matches/:MatchId/rounds', isLoggedIn,
 );
 
 //check answer for a card
-app.post('/api/cards/:CardId', 
-  [param('CardId').isInt({min: 1}).withMessage('CardId must be a positive integer'), 
+app.post('/api/matches/:MatchId/cards/:CardId', 
+  [
+  param('MatchId').isInt({min: 1}).withMessage('MatchId must be a positive integer'),
+  param('CardId').isInt({min: 1}).withMessage('CardId must be a positive integer'), 
   check('levelsx').isFloat({min: -1, max: 101}).withMessage('levelsx must be between 0 and 100'),
   check('leveldx').isFloat({min: -1, max: 101}).withMessage('leveldx must be between 0 and 100'), 
   check('endTime').isInt({min: 0}).withMessage('endTime must be a positive integer'),
-  check('MatchId').isInt({min: 1}).withMessage('MatchId must be a positive integer')
   ],
   async (req, res) => {
   const errors = validationResult(req);
@@ -279,7 +298,7 @@ app.post('/api/cards/:CardId',
     return res.status(404).json({ error: card.message });
   }
 
-  const matchId = req.body.MatchId;
+  const matchId = req.params.MatchId;
   const match = await getMatch(matchId);
   if (match instanceof Error) {
     return res.status(404).json({ error: match.message });
@@ -333,9 +352,9 @@ app.post('/api/matches/:MatchId/cards',
 );
 
 //get demo card
-app.post('/api/demo/cards',
+app.post('/api/matches/:matchId/demo',
   [
-    check('matchId').isInt({min: 1}).withMessage('gameId must be a positive integer'),
+    param('matchId').isInt({min: 1}).withMessage('gameId must be a positive integer'),
     check('cards').isArray().withMessage('Cards must be an array'),
     check('cards.*.CardId').isInt({min: 1}).withMessage('Each CardId must be a positive integer'),
     check('startTime').isInt({min: 0}).withMessage('startTime must be a positive integer')
@@ -346,7 +365,7 @@ app.post('/api/demo/cards',
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const matchId = req.body.matchId;
+    const matchId = req.params.matchId;
     const match = await getMatch(matchId);
     if (match instanceof Error) {
       return res.status(404).json({ error: match.message });
@@ -371,7 +390,7 @@ app.post('/api/login', function(req, res, next) {
       return next(err);
     if (!user) {
       // display wrong login messages
-      return res.status(401).send(info);
+      return res.status(200).json({ success: false, message: "invalid credentials"  });
     }
     // success, perform the login
     req.login(user, (err) => {
@@ -379,7 +398,7 @@ app.post('/api/login', function(req, res, next) {
         return next(err);
       
       // req.user contains the authenticated user, we send all the user info back
-      return res.status(201).json(req.user);
+      return res.status(201).json({success: true, user: req.user});
     });
   })(req, res, next);
 });
@@ -387,9 +406,9 @@ app.post('/api/login', function(req, res, next) {
 
 app.get('/api/session/current', (req, res) => {
   if (req.isAuthenticated()) {
-    res.json(req.user);
+    res.status(200).json({success: true, user: req.user});
   } else {
-  return res.status(401).json({ error: 'User not authenticated' });
+  return res.status(200).json({ success: false, error: 'User not authenticated' });
 }});
 
 
