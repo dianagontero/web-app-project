@@ -59,7 +59,7 @@ function Home() {
           </div>
           {user && (
             <div className="mt-3">
-              <Link to="/Chronology" 
+              <Link to="/UserProfile" 
                 style={{
                   textDecoration: "none",
                   color: "#f0c419",

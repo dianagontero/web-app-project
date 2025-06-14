@@ -17,6 +17,9 @@ const corsOptions = {
   credentials: true
 };
 
+
+app.use('/images', express.static('images'));
+
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(morgan('dev'));
@@ -406,9 +409,9 @@ app.post('/api/login', function(req, res, next) {
 
 app.get('/api/session/current', (req, res) => {
   if (req.isAuthenticated()) {
-    res.status(200).json({success: true, user: req.user});
+    res.status(200).json(req.user);
   } else {
-  return res.status(200).json({ success: false, error: 'User not authenticated' });
+  return res.status(401).json({error: "not authenticated"});
 }});
 
 

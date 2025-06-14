@@ -12,11 +12,7 @@ export function UserProvider({ children }) {
         const fetchUser = async () => {
             try {
                 const userData = await API.getCurrentUser();
-                if (userData.success === false) {
-                    setUser(null);
-                } else {
-                setUser(userData.user);
-                }
+                setUser(userData);
             } catch (error) {
                 setUser(null);
             }

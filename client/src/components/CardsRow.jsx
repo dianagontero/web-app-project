@@ -31,7 +31,7 @@ function CardsRow(props) {
                                 }}> {card.title}
                             </h6>
                             <img
-                                src={card.url}
+                                src={`http://localhost:3001/images/${card.url}`}
                                 alt={card.title}
                                 className="card-img-top mb-2"
                                 style={{

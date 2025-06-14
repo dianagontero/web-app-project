@@ -7,7 +7,7 @@ import Rules from './components/Rules.jsx'
 import Game from './components/Game.jsx'
 import Demo from './components/Demo.jsx'
 import MatchResult from './components/MatchResult.jsx'
-import Chronology from './components/Chronology.jsx'
+import UserProfile from './components/UserProfile.jsx'
 import {UserProvider} from './components/UserContext.jsx'
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { useState } from 'react';
@@ -24,7 +24,7 @@ function App() {
           <Route path="Rules" element={<Rules/>} />
           <Route path='Game' element={<Game gameID={gameID} setGameID={setGameID}/>}/>
           <Route path=':GameId/Result' element={<MatchResult/>}/>
-          <Route path='Chronology' element={<Chronology/>}/>
+          <Route path='UserProfile' element={<UserProfile/>}/>
         </Route>
       </Routes>
     </UserProvider>

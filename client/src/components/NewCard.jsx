@@ -70,7 +70,8 @@ function RenderNewCard(props) {
                             textShadow: "1px 1px 6px #fff"
                         }}>{newCard.title}
                     </h5>
-                    <img src={newCard.url}
+
+                    <img src={`http://localhost:3001/images/${newCard.url}`}
                         alt={newCard.title}
                         className="card-img-top mb-2"
                         style={{

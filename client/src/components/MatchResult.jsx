@@ -59,7 +59,7 @@ function MatchResult() {
                             <div key={card.CardId} className="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
                                 <div className="card h-100 shadow" style={{ borderRadius: "1rem" }}>
                                     <img
-                                        src={"../" + card.url}
+                                        src={`http://localhost:3001/images/${card.url}`}
                                         alt={card.title}
                                         className="card-img-top"
                                         style={{ maxHeight: "160px", objectFit: "contain", background: "#fff", borderRadius: "1rem 1rem 0 0" }}

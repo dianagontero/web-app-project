@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useContext } from "react";
 import API from "../API.mjs";
 import { UserContext } from "./UserContext";
-import { Spinner, Alert, Table, Badge, OverlayTrigger, Tooltip } from "react-bootstrap";
+import { Spinner, Alert, Table, Badge, OverlayTrigger, Tooltip, Card} from "react-bootstrap";
 import { Clock, Trophy, XCircle, MinusCircle } from "lucide-react";
 
-function Chronology() {
+function UserProfile() {
   const { user } = useContext(UserContext);
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,6 +36,38 @@ function Chronology() {
   if (matches.length===0) return <Alert variant="info">You haven't played any matches yet!</Alert>;
 
   return (
+    <>
+    <div className="d-flex flex-column align-items-center justify-content-center" style={{ minHeight: "60vh" }}>
+      <Card
+        style={{
+          maxWidth: 500,
+          width: "100%",
+          borderRadius: "1.5rem",
+          boxShadow: "0 8px 24px rgba(13,110,253,0.13)",
+          background: "#f8f9fa"
+        }}
+        className="mb-4"
+      >
+        <Card.Body className="text-center">
+          <div style={{ fontSize: "2rem", fontWeight: "bold", color: "#0d6efd", marginBottom: "1.2rem" }}>
+            User Profile
+          </div>
+          <div style={{ fontSize: "1.15rem", marginBottom: "1.5rem" }}>
+            <span style={{ fontWeight: "bold", color: "#495057" }}>First Name:</span>{" "}
+            <span style={{ color: "#0d6efd", fontWeight: "bold" }}>{user.name}</span>
+            <br />
+            <span style={{ fontWeight: "bold", color: "#495057" }}>Last Name:</span>{" "}
+            <span style={{ color: "#0d6efd", fontWeight: "bold" }}>{user.surname}</span>
+          </div>
+          <hr />
+          <div style={{ fontSize: "1.1rem" }}>
+            <p>
+              <strong>Email:</strong> <span style={{ color: "#495057" }}>{user.email}</span>
+            </p>
+          </div>
+        </Card.Body>
+      </Card>
+    </div>
     <div className="container py-4">
       <h2 className="mb-4 text-center" style={{ color: "#0d6efd", fontWeight: "bold", letterSpacing: "1px" }}>
         <Clock size={28} className="mb-1" /> Game History
@@ -134,7 +166,9 @@ function Chronology() {
         </tbody>
       </Table>
     </div>
+    </>
   );
+
 }
 
-export default Chronology;
+export default UserProfile;
