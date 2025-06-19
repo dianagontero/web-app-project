@@ -7,7 +7,6 @@ const UserContext = createContext();
 export function UserProvider({ children }) {
     const [user, setUser] = useState(null);
 
-
     useEffect(() => {
         const fetchUser = async () => {
             try {
@@ -34,7 +33,6 @@ export function UserProvider({ children }) {
                 message: "welcome " + userData.name + " " + userData.surname,
             })
         } catch (error) {
-
             return {
                 success: false,
                 message: error.message || "Login failed. Please try again."

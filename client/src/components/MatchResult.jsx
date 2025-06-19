@@ -8,7 +8,7 @@ function MatchResult() {
     const { user } = useContext(UserContext);
     const location = useLocation();
     const navigate = useNavigate();
-    const { cards } = location.state || {};
+    const { cards } = location.state;
 
     let gameResult;
     if (user) {
@@ -19,7 +19,7 @@ function MatchResult() {
     }
 
     const handleNewGame = () => {
-        navigate("/Game");
+        navigate("/GameIntro");
     };
 
     return (
@@ -42,7 +42,7 @@ function MatchResult() {
                             <h2 style={{ color: "#dc3545", fontWeight: "bold" }}>GAME OVER!</h2>
                             <p style={{ color: "#dc3545", fontSize: "1.2rem", fontWeight: "bold" }}>
                                 {user
-                                    ? "You didn't guess all the cards. Try again!"
+                                    ? "You didn't guess all the cards. Try again, you'll be luckier next time!"
                                     : "You didn't guess the right card. Try again, you'll be luckier next time!"}
                             </p>
                         </>
@@ -53,7 +53,9 @@ function MatchResult() {
                         Start a new game
                     </Button>
                 </div>
+                
                 {user && cards && (
+                    // Display the cards owned by the user is user is logged in
                     <div className="row justify-content-center">
                         {cards.map((card) => (
                             <div key={card.CardId} className="col-12 col-sm-6 col-md-4 col-lg-3 mb-4">
@@ -62,12 +64,11 @@ function MatchResult() {
                                         src={`http://localhost:3001/images/${card.url}`}
                                         alt={card.title}
                                         className="card-img-top"
-                                        style={{ maxHeight: "160px", objectFit: "contain", background: "#fff", borderRadius: "1rem 1rem 0 0" }}
-                                    />
+                                        style={{ maxHeight: "160px", objectFit: "contain", background: "#fff", borderRadius: "1rem 1rem 0 0" }}/>
                                     <div className="card-body text-center">
                                         <h5 className="card-title" style={{ color: "#0d6efd", fontWeight: "bold" }}>{card.title}</h5>
                                         <p className="card-text" style={{ color: "#d63384", fontWeight: "bold" }}>
-                                            Level: {card.level}
+                                             Level: {card.level}
                                         </p>
                                     </div>
                                 </div>

@@ -25,7 +25,22 @@ export const getUSer = (UserId) => {
     });
 }
 
-export const getCard = (MatchId, startTime) => {
+
+export const postTimerCard = (CardId, MatchId, StartTimer) => {
+    return new Promise((resolve, reject) => {
+        db.run('INSERT INTO Timer_Card (CardId, MatchId, StartTimer) VALUES (?, ?, ?)', 
+            [CardId, MatchId, StartTimer], 
+            function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(this.lastID);
+                }
+            });
+    });
+}
+
+export const getCard = (MatchId) => {
      return new Promise((resolve, reject) => {
         db.all('SELECT CardId FROM RoundCard WHERE MatchId = ?', [MatchId], (err, rows) => {
             if (err) {
@@ -41,26 +56,15 @@ export const getCard = (MatchId, startTime) => {
 
             let query = 'SELECT * FROM Card';
             let params = [];
-
-   
             const placeholders = usedIds.map((id) => '?').join(', ');
             query += ` WHERE CardId NOT IN (${placeholders})`;
             params = usedIds;
-
             query += ' ORDER BY RANDOM() LIMIT 1';
-
             db.get(query, params, (err, row) => {
                 if (err) {
                     reject(err);
                 }
                 if (row) {
-                    db.run('INSERT INTO TIMER_CARD (CardId, MatchId, StartTimer) VALUES (?, ?, ?)',
-                        [row.CardId, MatchId, startTime], 
-                        function(err) {
-                            if (err) {
-                                reject(err);
-                            } 
-                        });
                     resolve(new Card(row.CardId, row.title, null, row.url)); 
                 } else {
                     reject(new Error('No card found'));
@@ -71,33 +75,20 @@ export const getCard = (MatchId, startTime) => {
 }
 
 
-export const getCardDemo = (cards, matchId, startTime) => {
+export const getCardDemo = (cards) => {
     return new Promise((resolve, reject) => {
-
         const usedIds = cards.map(card => card.CardId);
-
         let query = 'SELECT * FROM Card';
         let params = [];
-
-
         const placeholders = usedIds.map((id) => '?').join(', ');
         query += ` WHERE CardId NOT IN (${placeholders})`;
         params = usedIds;
-
         query += ' ORDER BY RANDOM() LIMIT 1';
-
         db.get(query, params, (err, row) => {
             if (err) {
                 reject(err);
             }
             if (row) {
-                db.run('INSERT INTO TIMER_CARD (CardId, MatchId, StartTimer) VALUES (?, ?, ?)',
-                    [row.CardId, matchId, startTime], 
-                    function(err) {
-                        if (err) {
-                            reject(err);
-                        }
-                    });
                 resolve(new Card(row.CardId, row.title, null, row.url));
             } else {
                 reject(new Error('No card found'));
@@ -105,6 +96,7 @@ export const getCardDemo = (cards, matchId, startTime) => {
         });
     });
 }
+
 export const getCardbyID = (CardId) => {
     return new Promise((resolve, reject) => {
         db.get('SELECT * FROM Card WHERE CardId = ?', [CardId], (err, row) => {
@@ -230,16 +222,14 @@ export const CheckAnswer = (cardId, levelLeft, levelRight, endTime, MatchId) => 
       if (err) {
         return reject(err);
       }
-
       if (!row) {
         return reject(new Error('Card not found'));
       }
 
-      db.get('SELECT * FROM TIMER_CARD WHERE CardId = ? AND MatchId = ?', [cardId, MatchId], (err, timerRow) => {
+      db.get('SELECT * FROM Timer_Card WHERE CardId = ? AND MatchId = ?', [cardId, MatchId], (err, timerRow) => {
         if (err) {
           return reject(err);
         }
-
         if (!timerRow) {
           return reject(new Error('Timer card not found'));
         }

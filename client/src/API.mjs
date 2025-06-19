@@ -15,7 +15,6 @@ const startNewGame = async (userId) => {
         } else if (!response.ok) {
             throw new Error(`Generic Error: ${data.error}`);
         }
-
         return data;
     }
     catch (error) {
@@ -135,7 +134,7 @@ const getCardDemo = async (matchId, cards, startTime) => {
             throw new Error(`Card not valid: ${data.error}`);
         }
         else if (response.status === 404) {
-            throw new Error(`Card not found: ${data.error}`);
+            throw new Error(`Card or Match not found: ${data.error}`);
         }
         else if (response.status === 500) {
             throw new Error(`Server error: ${data.error}`);
@@ -166,7 +165,7 @@ const CheckAnswer = async (CardId, levelsx, leveldx, UserId, round, MatchId, end
     const data = await response.json();
 
     if (response.status === 404) {
-        throw new Error(`Card not found: ${data.error}`);
+        throw new Error(`Match or Card not found: ${data.error}`);
     }
     else if (response.status === 500) {
         throw new Error(`Server error: ${data.error}`);
@@ -255,7 +254,7 @@ const getMatches = async (UserId) => {
             throw new Error(`Matches not valid: ${matches.error}`);
         }
         else if (response.status === 404) {
-            throw new Error(`Matches not found: ${matches.error}`);
+            throw new Error(`User not found: ${matches.error}`);
         }
         else if (response.status === 500) {
             throw new Error(`Server error: ${matches.error}`);

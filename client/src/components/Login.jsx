@@ -31,12 +31,11 @@ function Login() {
       const user = await login(email, password );
       if (user.success === true) {
         setSuccessMsg('Login successful! Redirecting...');
-
       } else {
         setErrorMsg('Login failed. Please try again.');
       }
     } catch (err) {
-      setErrorMsg('Error during login: ' + (err.message || ''));
+      setErrorMsg('Error during login:');
     } finally {
       setLoading(false);
     }
@@ -60,8 +59,7 @@ function Login() {
               value={email}
               onChange={e => setEmail(e.target.value)}
               required
-              disabled={loading}
-            />
+              disabled={loading}/>
           </Form.Group>
 
           <Form.Group className="mb-3" controlId="formPassword">
@@ -73,8 +71,7 @@ function Login() {
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
-              disabled={loading}
-            />
+              disabled={loading}/>
           </Form.Group>
 
           <Button variant="primary" type="submit" className="w-100" size="lg" disabled={loading}>

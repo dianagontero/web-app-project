@@ -1,20 +1,12 @@
-
 function NewCard(props) {
-    const { getNewCard, loading, newCard, activeTimer, timer } = props;
+    const { getNewCard, loading, newCard, activeTimer, timer, gameEnd } = props;
     return (
         <>
             <div className="d-flex flex-row align-items-center justify-content-center gap-4" style={{ marginTop: "2rem" }}>
                 <button className="btn btn-outline-danger px-5 py-3 fs-4"
                     onClick={getNewCard} // Function to get a new card
-                    disabled={loading || newCard !== null}
-                    style={{
-                        borderRadius: "2rem",
-                        boxShadow: "0 2px 8px rgba(213, 32, 50, 0.5)",
-                        fontWeight: "bold",
-                        fontSize: "1.3rem",
-                        letterSpacing: "1px",
-                        minWidth: "260px"
-                    }}>
+                    disabled={loading || newCard !== null || gameEnd} // Disable button while loading or if a new card is already drawn or game has ended
+                    style={{borderRadius: "2rem", boxShadow: "0 2px 8px rgba(213, 32, 50, 0.5)", fontWeight: "bold", fontSize: "1.3rem", letterSpacing: "1px", minWidth: "260px"}}>
                     {loading ? 'Loading...' : 'Draw new situation'} 
                 </button>
                 {activeTimer && (
@@ -35,8 +27,9 @@ function NewCard(props) {
                     </div>
                 )}
             </div>
+
             {newCard && (
-                RenderNewCard({ newCard }) // Render the new card if it exists
+                <RenderNewCard newCard={newCard} /> // Render the new card if it exists
             )}
         </>
     )
@@ -47,14 +40,8 @@ function RenderNewCard(props) {
     return (
         <div className="mt-4 text-center">
             <h2 className="mb-4"
-                style={{
-                    color: "#FFD600",
-                    fontWeight: "bold",
-                    letterSpacing: "2px",
-                    textShadow: "1px 1px 8pxrgb(235, 220, 13), 0 2px 8px #fff",
-                    fontSize: "2.2rem",
-                    fontFamily: "'Comic Sans MS', 'Comic Sans', cursive"
-                }}> ✨🃏 New Situation! 🃏✨
+                style={{color: "#FFD600", fontWeight: "bold", letterSpacing: "2px", textShadow: "1px 1px 8pxrgb(235, 220, 13), 0 2px 8px #fff", fontSize: "2.2rem", fontFamily: "'Comic Sans MS', 'Comic Sans', cursive"}}> 
+                ✨🃏 New Situation! 🃏✨
             </h2>
             <div className="card mx-auto"
                 style={{ width: '18rem' }}
@@ -74,12 +61,7 @@ function RenderNewCard(props) {
                     <img src={`http://localhost:3001/images/${newCard.url}`}
                         alt={newCard.title}
                         className="card-img-top mb-2"
-                        style={{
-                            maxHeight: '170px',
-                            maxWidth: '100%',
-                            objectFit: 'contain',
-                            background: '#fff'
-                        }}/>
+                        style={{maxHeight: '170px', maxWidth: '100%', objectFit: 'contain', background: '#fff'}}/>
                     <p className="card-text mb-0">
                         <strong style={{ color: "#dc3545" }}>Level: ?</strong> {newCard.level}
                     </p>

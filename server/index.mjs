@@ -1,6 +1,6 @@
 import express from 'express';
 import {param, check, validationResult} from 'express-validator';
-import { getUSer, getCard, getMatch, getThreeCards, getRoundCards, getMatches, PostMatch, PostRoundCard, PutMatch, getCardbyID, CheckAnswer, getUserLogin, getCardDemo} from './DAO.mjs';
+import { getUSer, getCard, getMatch, getThreeCards, getRoundCards, getMatches, PostMatch, PostRoundCard, PutMatch, getCardbyID, CheckAnswer, getUserLogin, getCardDemo, postTimerCard} from './DAO.mjs';
 import cors from 'cors';
 import morgan from 'morgan';
 import passport from 'passport';
@@ -91,7 +91,7 @@ app.get('/api/users/:UserId/matches', isLoggedIn,
     try {
       const matches = await getMatches(userId);
       if (matches instanceof Error) {
-        return res.status(404).json({ error: matches.message });
+        return res.status(400).json({ error: matches.message });
       } else {
         res.status(200).json(matches);
       }
@@ -323,7 +323,7 @@ app.post('/api/matches/:MatchId/cards/:CardId',
   }
 });
 
-//get card
+//get card and post timer card
 app.post('/api/matches/:MatchId/cards', 
   [ 
     param('MatchId').isInt({min: 1}).withMessage('MatchId must be a positive integer'),
@@ -342,10 +342,11 @@ app.post('/api/matches/:MatchId/cards',
       return res.status(404).json({ error: match.message });
     }
     try {
-      const card = await getCard(matchId, req.body.startTime);
+      const card = await getCard(matchId);
       if (card instanceof Error) {
         return res.status(404).json({ error: card.message });
       } else {
+        const timerId = await postTimerCard(card.CardId, matchId, req.body.startTime);
         res.status(200).json(card);
       }
     } catch (err) {
@@ -375,10 +376,11 @@ app.post('/api/matches/:matchId/demo',
     }
     
     try {
-      const card = await getCardDemo(req.body.cards, matchId, req.body.startTime);
+      const card = await getCardDemo(req.body.cards);
       if (card instanceof Error) {
         return res.status(404).json({ error: card.message });
       } else {
+        const timerId = await postTimerCard(card.CardId, matchId, req.body.startTime);
         res.status(200).json(card);
       }
     } catch (err) {

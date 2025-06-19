@@ -1,5 +1,3 @@
-
-
 function CardsRow(props) {
     const { cards, handleDrop } = props;
     return (
@@ -24,28 +22,17 @@ function CardsRow(props) {
                         }>
                         <div className="card-body p-2 text-center d-flex flex-column justify-content-between" style={{ height: '300px' }}>
                             <h6 className="card-title"
-                                style={{
-                                    color: "#0d6efd", 
-                                    fontWeight: "bold",
-                                    textShadow: "1px 1px 6px #fff"
-                                }}> {card.title}
+                                style={{color: "#0d6efd", fontWeight: "bold", textShadow: "1px 1px 6px #fff"}}>
+                                {card.title}
                             </h6>
                             <img
                                 src={`http://localhost:3001/images/${card.url}`}
                                 alt={card.title}
                                 className="card-img-top mb-2"
-                                style={{
-                                    maxHeight: '170px',
-                                    maxWidth: '100%',
-                                    objectFit: 'contain', 
-                                    background: '#fff'
-                                }}/>
+                                style={{maxHeight: '170px', maxWidth: '100%', objectFit: 'contain', background: '#fff'}}/>
                             <p className="card-text mb-0"
-                                style={{
-                                    color: "#0d6efd", 
-                                    fontWeight: "bold",
-                                    textShadow: "1px 1px 6px #fff"
-                                }}> <strong>Level:</strong> {card.level}
+                                style={{color: "#0d6efd", fontWeight: "bold", textShadow: "1px 1px 6px #fff"}}>
+                                <strong>Level:</strong> {card.level}
                             </p>
                         </div>
                     </div>
